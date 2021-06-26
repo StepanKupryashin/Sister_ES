@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 init python:
-    mods["Sister_index"] =  u"{font=fonts/timesi.ttf}{size=40}"Sister" Project{/size}{/font}"
+    mods["Sister_index"] =  u"{font=fonts/timesi.ttf}{size=40}\"Sister\" Project{/size}{/font}"
+    import re
 
     def make_sprite_timed(image):
         return ConditionSwitch(
@@ -18,22 +19,66 @@ init python:
             image # Но на случаи когда ни туда ни сюда, выходит обычное изображение
         )
 
-    for file in renpy.list_files(): # Что, новомодное объявление файлов хотите? Ну смотрите, даже разьясню что это за бублик
-        if "Sister" in file: # Проверяет от нашего ли мода этот файл
-            file_name = os.path.splitext(os.path.basename(file))[0] # Достаем имя файла
 
-            if file.endswith((".png", ".jpg", ".webp")): # Фильтр на изображения
+    def create_canon_colored_character(tag, name, ground_color):
 
-                if "sprites" in file and  not "composite" in file: # Если он в директории спрайтов, то по красоте с матрицой добавляет спрайт # За исключением компонентных спрайтов, они будут обьявлены дальше
-                    renpy.image( # По факту, так же обьявляет изображение, но реализуемо подругому. Не забудьте использовать bg cg и подобную херотеть в названии папок
-                        file_name.replace("_", " "), # имя по которому будем обращаться
-                        make_sprite_timed(file)
-                    )
-                elif not "gui" in file: # Компоненты меню обьявляются в самом меню
-                    renpy.image(file.split("/")[-2]+" "+file_name,  # Ну а обычные ваши фончики фоточки обьявляются вот так
-                        
-                        file,
-                        
-                        )
-            elif file.endswith((".wav", ".mp2", ".mp3", ".ogg", ".opus")): # Если хотите потусить под музычку
-                globals()[file_name] = file # Разьяснения нужны?
+        """
+        Оставим если в этом будет смысл
+        """
+
+        if isinstance(ground_color, str):
+            ground_color = ground_color.replace("#", "")
+            colors_list = len(ground_color)
+            if colors_list in [3, 4]:
+                colors_list = re.findall(r"[0-9a-fA-F]", ground_color)
+            elif colors_list in [6, 8]:
+                colors_list = re.findall(r"[0-9a-fA-F][0-9a-fA-F]", ground_color)
+            else:
+                text = "Неверное значение цвета #"+ground_color
+                raise Exception(text)
+
+            if len(colors_list) == 3:
+                colors_list.append("FF")
+
+            for i, color in enumerate(colors_list):
+                if len(color) == 1:
+                    color += "F"
+                colors_list[i] = int("0x"+color, base=16)
+
+            ground_color = colors_list
+
+        cl = tuple(ground_color)
+
+        color_list = {
+            'night': [cl[0]*0.63, cl[1]*0.78, cl[2]*0.82, cl[3]],
+            'sunset': [cl[0]*0.94, cl[1]*0.82, cl[2], cl[3]],
+            'day': cl,
+            'prolog': cl
+        }
+
+        global colors, names
+
+        colors[tag] = color_list
+        names[tag] = name
+        store.names_list.append(tag)
+
+    create_canon_colored_character("lu", "Луна", "#124391")
+    create_canon_colored_character("sv", "Света", "#124391")
+    create_canon_colored_character("fa", "Отец", "#888")
+    create_canon_colored_character("mih", "Михаил Сергеевич", "#555")
+
+init:
+    image bg int_sis_room_anim:
+        "mods/Sister/images/bg/int/sis_room_rain.jpg"
+        block:
+            choice:
+                2
+            choice:
+                10
+            5
+            choice:
+                "mods/Sister/images/bg/int/sis_room_rain.jpg" with dissolve2
+
+            choice:
+                "mods/Sister/images/bg/int/sis_room_day.jpg" with dissolve2
+            repeat
